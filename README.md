@@ -1,18 +1,21 @@
 # OLP_AQI-31F
 
-## GitHub Pages + Chrome Extension Setup
+## Hosting model
 
-This project now fetches CPCB data directly from:
+This repo is configured for static hosting on GitHub Pages.
+External AQI is fetched directly from CPCB/data.gov.in in the browser.
 
-`https://api.data.gov.in/resource/3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69?...`
+## Required browser setup (8 controlled devices)
 
-Because of browser CORS, you must enable a Chrome CORS extension on each display device.
+Because CPCB endpoint CORS is restricted, install a Chrome CORS extension on each device.
 
-### Recommended steps (for your controlled 8 devices)
+1. Install a CORS extension (example: "CORS Unblock").
+2. Whitelist only your GitHub Pages domain.
+3. Keep the extension enabled only during dashboard display.
+4. Disable it for normal browsing.
 
-1. Install a CORS extension in Chrome (example: "CORS Unblock").
-2. Open extension options and whitelist only your GitHub Pages domain.
-3. Enable extension when showing this dashboard.
-4. Disable extension when not needed.
+## Hardening checklist before sharing URL
 
-Note: This is a controlled-device workaround, not a public production pattern.
+1. Confirm the extension is limited to your GitHub Pages domain only.
+2. Keep repository access restricted if possible (private repo for internal use).
+3. Rotate CPCB API key if a previously public key was exposed.
