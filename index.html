@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>One Lodha Place | Air Quality Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@200;300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Color Palette */
+            --text-grey: #646464; 
+            --text-indoor-num: #656565; 
+            --text-outdoor-num: #999999;
+            --status-green: #45A631;
+            --lodha-gold: #9e801b;
+            --faint-label: rgba(68, 68, 68, 0.8);
+            
+            /* Transparency Settings */
+            --card-bg: rgba(255, 255, 255, 0.3); /* 70% Transparent Card */
+            --sensor-bg: rgba(255, 255, 255, 0.7); /* 30% Transparent Sensor Box */
+        }
+        body, html {
+            margin: 0; padding: 0; height: 100vh; width: 100vw;
+            font-family: 'Inter', sans-serif;
+            background: url('bg.jpg') no-repeat center center fixed; 
+            background-size: cover; 
+            overflow: hidden;
+            display: flex; align-items: center;
+        }  
+        
+         /* Video Overlay Styling */
+        #video-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: black;
+            z-index: 1000;
+        }
+        #warning-video { width: 100%; height: 100%; object-fit: cover; }
+        
+        /* Subtle Background Curves matching Figma */
+        .bg-gradient {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 100% 100%, #F2F2F2 0%, #FFFFFF 70%);
+            z-index: -1;
+        }
+        .dashboard-container {
+            display: flex; width: 100%; height: 100%;
+            padding: 0 8vw; box-sizing: border-box;
+            align-items: center; justify-content: space-between;
+        }
+        /* LEFT SIDE: Headline with dynamic wrapping */
+        .text-panel { 
+            flex: 0 0 55%; 
+        }
+        .live-tag {
+            font-size: 3vh; font-weight: 500; text-transform: uppercase;
+            letter-spacing: 0.1vw; color: var(--text-grey); margin-bottom: 4vh;
+        }
+        .headline {
+            font-size: 6.5vh; font-weight: 400; 
+            color: var(--text-grey); 
+            line-height: 1.1; margin: 0; letter-spacing: 0.05vw;
+             white-space: nowrap;   /* Add this */
+        }
+        .status-word {
+            font-weight: 600; color: var(--status-green); 
+            display: inline; 
+            text-transform: uppercase;
+            padding-left: 0.2vw;
+            white-space: nowrap;   /* Add this */
+        }
+        /* RIGHT SIDE: Proportionate Cards */
+        .cards-panel {
+            flex: 0 0 28vw; 
+            display: flex; 
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4vh;
+            justify-content: center;      
+            padding: 5vh 0;               
+            height: 100%;
+            box-sizing: border-box;
+            overflow: hidden;
+            transform: translateX(20%); /* Add this line */
+          
+        }
+        .card {
+            background: var(--card-bg); 
+            backdrop-filter: blur(20px);
+            width: 50vh; height: 50vh; 
+            padding: 3vh 2vw;
+            border-radius: 3.5vh; 
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            text-align: center; box-sizing: border-box;
+            box-shadow: 0 2vh 5vh rgba(0,0,0,0.02);
+             margin: 0;    /* ensure no extra margin */
+        }
+        .location-label {
+            font-size: 3vh; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 0.15vw; color: var(--text-grey);margin-bottom: 3vh;
+        }
+        .aqi-number {
+            font-size: 13vh; font-weight: 200; 
+            color: var(--text-grey); 
+            margin: 0.5vh 0; letter-spacing: -0.7vh; line-height: 1;
+        }
+        /* SENSOR BOX with 30% Transparency Background */
+        .metrics-grid {
+            display: flex; background: var(--sensor-bg);
+            border-radius: 2.5vh; margin-top: 3.5vh; padding: 2.2vh 0;
+        }
+        .metric-block { flex: 1; display: flex; flex-direction: column; align-items: center; }
+        .m-label { font-size: 2.5vh; font-weight: 500; color: var(--text-grey); text-transform: uppercase; }
+        .m-val { font-size: 3vh; font-weight: 500; color: var(--text-grey); margin-top: 0.3vh; }
+        .m-unit { font-size: 3vh; margin-left: 0.2vw; font-weight: 500; }
+        .v-divider { width: 1px; background: rgba(0,0,0,0.08); height: 4vh; align-self: center; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body id="main-ui">
+  
+   <div id="video-overlay">
+        <video id="warning-video" loop muted playsinline>
+            <source src="OLPJanuary.mp4" type="video/mp4">
+        </video>
+    </div>
+    <div class="bg-gradient"></div>
+    <div class="dashboard-container" id="dashboard-wrapper">
+        <div class="text-panel">
+            <div class="live-tag">Live AQI</div>
+             <h1 class="headline">Indoor air quality is&nbsp;<span class="status-word" id="status-text">Excellent</span></h1>
+        </div>
+        <div class="cards-panel">
+            <div class="card" id="internal-card">
+                <div class="location-label">One Lodha Place</div>
+                <div class="aqi-number" id="in-aqi">--</div>
+                <div class="metrics-grid">
+                    <div class="metric-block">
+                        <span class="m-label">PM 2.5</span>
+                        <span class="m-val"><span id="in-pm25">--</span></span>
+                    </div>
+                    <div class="v-divider"></div>
+                    <div class="metric-block">
+                        <span class="m-label">PM 10</span>
+                        <span class="m-val"><span id="in-pm10">--</span></span>
+                    </div>
+                </div>
+            </div>
+            <div class="card" id="external-card">
+                <div class="location-label">Worli </div>
+                <div class="aqi-number" id="out-aqi">--</div>
+                <div class="metrics-grid">
+                    <div class="metric-block">
+                        <span class="m-label">PM 2.5</span>
+                        <span class="m-val"><span id="out-pm25">--</span></span>
+                    </div>
+                    <div class="v-divider"></div>
+                    <div class="metric-block">
+                        <span class="m-label">PM 10</span>
+                        <span class="m-val"><span id="out-pm10">--</span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const K_KEY = 'nomjPNZHYkGzzP5YIJePqI2cUON67v1pj9JPXb8BpcgnC5VX';
+        const GOV_AQI_API = 'https://api.data.gov.in/resource/3b01bcb8-0b14-4abf-b6f2-c1bfd384ba69?api-key=579b464db66ec23bdd000001cdd3946e44ce4aad7209ff7b23ac571b&format=json&filters%5Bcity%5D=Mumbai&limit=200';
+        const DEVICE_IDS = ['dfc123cb-bf24-4654-a51c-1f063abf95be', '031a1e39-d42b-4e20-9861-2a28365f76a3', '9fb4fe83-5340-47ed-af73-3641586d05b8', '85ebf1cd-c9b6-4a3d-b8a7-b028564da156', '98786370-3dde-4a3e-82f9-f8cf2910d217', '46ce3613-b8b8-4ffa-a1bc-7e0ad3eb952a'];
+ 
+       function calcAQI(pm) {
+            if (pm <= 30) return Math.round(pm * 50 / 30);
+            if (pm <= 60) return Math.round(50 + (pm - 30) * (50 / 30));
+            if (pm <= 90) return Math.round(100 + (pm - 60) * (100 / 30));
+            if (pm <= 120) return Math.round(200 + (pm - 90) * (100 / 30));
+            if (pm <= 250) return Math.round(300 + (pm - 120) * (100 / 130));
+            return 500;
+       }
+
+        function toFiniteNumber(value) {
+            const n = Number(value);
+            return Number.isFinite(n) ? n : null;
+        }
+
+        function calcAQIFromPM10(pm10) {
+            if (!Number.isFinite(pm10) || pm10 < 0) return 0;
+            const bands = [
+                { cLow: 0, cHigh: 50, iLow: 0, iHigh: 50 },
+                { cLow: 51, cHigh: 100, iLow: 51, iHigh: 100 },
+                { cLow: 101, cHigh: 250, iLow: 101, iHigh: 200 },
+                { cLow: 251, cHigh: 350, iLow: 201, iHigh: 300 },
+                { cLow: 351, cHigh: 430, iLow: 301, iHigh: 400 }
+            ];
+            for (const b of bands) {
+                if (pm10 <= b.cHigh) {
+                    return Math.round(((b.iHigh - b.iLow) / (b.cHigh - b.cLow)) * (pm10 - b.cLow) + b.iLow);
+                }
+            }
+            return 500;
+        }
+
+        async function fetchExternalCpcbData() {
+            const res = await fetch(GOV_AQI_API, { cache: 'no-store' });
+            if (!res.ok) throw new Error('CPCB API HTTP ' + res.status);
+            return await res.json();
+        }
+ 
+        async function updateData() {
+            try {
+                let inAQI = 0, outAQI = 0;
+                
+                // --- Internal Sensors (Kaiterra) ---
+                const fetches = DEVICE_IDS.map(id => fetch(`https://api.kaiterra.com/v1/devices/${id}/top?key=${K_KEY}`).then(r => r.json()));
+                const results = await Promise.allSettled(fetches);
+                let pm25List = [], pm10List = [];
+                
+                results.forEach(res => {
+                    if (res.status === 'fulfilled' && res.value.data) {
+                        const d = res.value.data;
+                        pm25List.push(d.find(x => x.param === 'rpm25c').points[0].value);
+                        pm10List.push(d.find(x => x.param === 'rpm10c').points[0].value);
+                    }
+                });
+ 
+               if (pm25List.length > 0) {
+                    const avg25 = pm25List.reduce((a, b) => a + b, 0) / pm25List.length;
+                    const avg10 = pm10List.reduce((a, b) => a + b, 0) / pm10List.length;
+                    inAQI = calcAQI(avg25);
+
+                    document.getElementById('in-aqi').innerText = inAQI;
+                    document.getElementById('in-pm25').innerHTML = Math.round(avg25) + '<span class="metric-unit"> µg/m³</span>';
+                    document.getElementById('in-pm10').innerHTML = Math.round(avg10) + '<span class="metric-unit"> µg/m³</span>';
+    
+                    const st = document.getElementById('status-text');
+                    st.innerText = inAQI <= 15 ? "PRISTINE" : inAQI <= 30 ? "EXCEPTIONAL" : inAQI <= 45 ? "EXCELLENT" : inAQI <= 60 ? "VERY GOOD" : "GOOD";
+    }
+                // --- External Data (CPCB via data.gov.in) ---
+                let records = [];
+                try {
+                    const extJson = await fetchExternalCpcbData();
+                    records = Array.isArray(extJson && extJson.records) ? extJson.records : [];
+                } catch (err) {
+                    console.error('External AQI fetch failed:', err);
+                    document.getElementById('out-aqi').innerText = '--';
+                    document.getElementById('out-pm10').innerText = '--';
+                    document.getElementById('out-pm25').innerText = '--';
+                }
+                const pm10Values = [];
+                const pm25Values = [];
+
+                records.forEach(r => {
+                    const pollutant = String(r.pollutant_id || '').toUpperCase();
+                    const vPm10 = toFiniteNumber(r.pm10);
+                    const vPm25 = toFiniteNumber(r.pm2_5);
+                    const vAvg = toFiniteNumber(r.avg_value);
+
+                    if (vPm10 !== null) pm10Values.push(vPm10);
+                    if (vPm25 !== null) pm25Values.push(vPm25);
+
+                    if (vAvg !== null) {
+                        if (pollutant.includes('PM10')) pm10Values.push(vAvg);
+                        if (pollutant.includes('PM2.5') || pollutant.includes('PM25')) pm25Values.push(vAvg);
+                    }
+                });
+
+                if (pm10Values.length > 0) {
+                    const avgOutPm10 = pm10Values.reduce((a, b) => a + b, 0) / pm10Values.length;
+                    outAQI = calcAQIFromPM10(avgOutPm10);
+                    document.getElementById('out-aqi').innerText = outAQI;
+                    document.getElementById('out-pm10').innerHTML = Math.round(avgOutPm10) + '<span class="metric-unit"> µg/m³</span>';
+                } else {
+                    document.getElementById('out-aqi').innerText = '--';
+                    document.getElementById('out-pm10').innerText = '--';
+                }
+
+                if (pm25Values.length > 0) {
+                    const avgOutPm25 = pm25Values.reduce((a, b) => a + b, 0) / pm25Values.length;
+                    document.getElementById('out-pm25').innerHTML = Math.round(avgOutPm25) + '<span class="metric-unit"> µg/m³</span>';
+                } else {
+                    document.getElementById('out-pm25').innerText = '--';
+                }
+                // --- TRIGGER LOGIC ---
+                const overlay = document.getElementById('video-overlay');
+                const video = document.getElementById('warning-video');
+                const dashboard = document.getElementById('dashboard-wrapper');
+                const extCard = document.getElementById('external-card');
+                const intCard = document.getElementById('internal-card');
+                if (inAQI > 50) {
+                    overlay.style.display = 'block';
+                    dashboard.style.display = 'none';
+                    video.muted = true;
+                    video.load(); // Refresh video state
+                    video.play().catch(e => console.log("Autoplay blocked", e));
+                } else {
+                    overlay.style.display = 'none';
+                    dashboard.style.display = 'flex';
+                    video.pause();
+                    video.currentTime = 0;
+                    const diff = Math.abs(outAQI - inAQI);
+                    if (diff > 50) {
+                        intCard.classList.remove('hidden');
+                        extCard.classList.remove('hidden');
+                    } else {
+                        intCard.classList.remove('hidden');
+                        extCard.classList.add('hidden');
+                    }
+                }
+            } catch (e) { console.error(e); }
+        }
+        updateData();
+        setInterval(updateData, 300000); 
+    </script>
+</body>
+</html>
+
